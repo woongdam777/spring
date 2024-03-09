@@ -1,12 +1,9 @@
 package hello.hellospring.repository;
-
 import hello.hellospring.domain.Member;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
-
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,18 +11,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.springframework.jdbc.core.JdbcOperationsExtensionsKt.query;
-
-public class JdbcTemplateMemberRepository implements MemberRepository{
+public class JdbcTemplateMemberRepository implements MemberRepository {
 
     private final JdbcTemplate jdbcTemplate;
-
 //    @Autowired // 스프링 빈으로 등록되면 생성자가 딱 하나만 있으면 오토와이어 생략 가능
-    public JdbcTemplateMemberRepository(JdbcTemplate jdbcTemplate){
-        this.jdbcTemplate = jdbcTemplate;
+    public JdbcTemplateMemberRepository(DataSource dataSource) {
+        jdbcTemplate = new JdbcTemplate(dataSource);
     }
-
     @Override
     public Member save(Member member) {
         SimpleJdbcInsert jdbcInsert = new SimpleJdbcInsert(jdbcTemplate);
@@ -36,6 +28,7 @@ public class JdbcTemplateMemberRepository implements MemberRepository{
         // 위에 4줄로 insert문을 만들어준다. 라고 이해하고 넘어가자
         Number key = jdbcInsert.executeAndReturnKey(new MapSqlParameterSource(parameters));
         member.setId(key.longValue());
+
         return member;
     }
 
@@ -43,13 +36,7 @@ public class JdbcTemplateMemberRepository implements MemberRepository{
     // 왜 템플릿이냐 - 디자인 패턴 중에 템플릿 메소드 패턴이란게 있는데 그걸 많이 사용해서 줄였음
     @Override
     public Optional<Member> findById(Long id) {
-        List<Member> result = jdbcTemplate.query("select * form member where id=?", memberRowMapper(), id);
-        return result.stream().findAny();
-    }
-
-    @Override
-    public Optional<Member> findByName(String name) {
-        List<Member> result = jdbcTemplate.query("select * from member where name = ?", memberRowMapper(), name);
+        List<Member> result = jdbcTemplate.query("select * from member where id= ?", memberRowMapper(), id);
         return result.stream().findAny();
     }
 
@@ -59,7 +46,12 @@ public class JdbcTemplateMemberRepository implements MemberRepository{
         // 아래 memberRowMapper 메서드로 callback으로 객체 생성되서 넘어온다.
     }
 
-    private RowMapper<Member> memberRowMapper(){
+    @Override
+    public Optional<Member> findByName(String name) {
+        List<Member> result = jdbcTemplate.query("select * from member where name = ?", memberRowMapper(), name);
+        return result.stream().findAny();
+    }
+    private RowMapper<Member> memberRowMapper() {
 //        return new RowMapper<Member>() {
 //            @Override
 //            public Member mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -68,7 +60,7 @@ public class JdbcTemplateMemberRepository implements MemberRepository{
 //                member.setName(rs.getString("name"));
 //                return member;
 //            }
-//        }; // alt+enter 하면 lambda로 변환됨
+//        }; // alt+enter 하면 java8 lambda로 변환됨
         return (rs, rowNum) -> {
             Member member = new Member();
             member.setId(rs.getLong("id"));
@@ -76,5 +68,4 @@ public class JdbcTemplateMemberRepository implements MemberRepository{
             return member;
         };
     }
-
 }
