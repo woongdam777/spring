@@ -32,10 +32,19 @@ public class MemberService {
         // 리펙토링 단축키 ctrl+alt+shift+t 리펙토링 가능목록
         // 따로 메서드로 분리 Extract Method 단축키 ctrl+alt+m 범위지정-메서드명지정
 
-        validateDuplicateMember(member); // 중복 회원 검증
 
-        memberRepository.save(member);
-        return member.getId();
+        long start = System.currentTimeMillis();
+
+        try {
+            validateDuplicateMember(member); // 중복 회원 검증
+
+            memberRepository.save(member);
+            return member.getId();
+        }finally {
+            long finish = System.currentTimeMillis();
+            long timeMs = finish - start;
+            System.out.println("join = "+timeMs+"ms");
+        }
     }
 
     private void validateDuplicateMember(Member member) {
